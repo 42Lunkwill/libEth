@@ -21,7 +21,7 @@ NAME		=	libEthernet.so
 
 RM			=	rm -f
 
-all			:	$(NAME) test
+all			:	$(NAME)
 
 $(NAME)		:	
 				$(GCC) $(CFLAGS) --shared -fPIC $(SRC_PATH)$(LIB_SRC) -o $(DEST)/$(NAME)
@@ -31,7 +31,7 @@ clean		:
 
 re			:	clean all
 
-test		:
+test		:	$(NAME)
 				$(GCC) $(CFLAGS) tests/$(TESTS_SRC) -L$(DEST) -lEthernet -o $(DEST)/testExec
  
 
