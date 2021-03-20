@@ -9,8 +9,6 @@ INC_PATH	=	./code/inc/
 
 LIB_SRC		=	libEthernet.cpp
 
-TESTS_SRC	=	test.cpp
-
 NAME		=	libEthernet.so
 
 
@@ -26,13 +24,17 @@ all			:	$(NAME)
 $(NAME)		:	
 				$(GCC) $(CFLAGS) --shared -fPIC $(SRC_PATH)$(LIB_SRC) -o $(DEST)/$(NAME)
 
+server		:	$(NAME)
+				$(GCC) $(CFLAGS) tests/server.cpp -L$(DEST) -lEthernet -o $(DEST)/testServer
+
+client		:	$(NAME)
+				$(GCC) $(CFLAGS) tests/client.cpp -L$(DEST) -lEthernet -o $(DEST)/testClient
+ 
+tests		:	$(NAME) server client
+
 clean		:
-				$(RM) $(DEST)/$(NAME) $(DEST)/testExec 
+				$(RM) $(DEST)/$(NAME) $(DEST)/testClient $(DEST)/testServer
 
 re			:	clean all
-
-test		:	$(NAME)
-				$(GCC) $(CFLAGS) tests/$(TESTS_SRC) -L$(DEST) -lEthernet -o $(DEST)/testExec
- 
 
 .PHONY		:	all clean re

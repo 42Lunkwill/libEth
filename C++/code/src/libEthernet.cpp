@@ -6,6 +6,9 @@
 #include <netinet/in.h> 
 #include <arpa/inet.h>
 #include <string.h> 
+
+#include <thread>
+
 #include "libEthernet.h"
 
 libEthernet::libEthernet(libEthernet::E_INSTANCE_TYPE instance, const char *ip, int port, libEthernet::E_CONNECTION_TYPE connectionType):
@@ -47,7 +50,6 @@ libEthernet::E_STATUS libEthernet::serverConfig()
         perror("listen"); 
         return libEthernet::FAILURE;
     }
-
     int addrlen = sizeof(address);
     if ((newSocket = accept(this->_socket_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0)
     { 
@@ -55,13 +57,25 @@ libEthernet::E_STATUS libEthernet::serverConfig()
         return libEthernet::FAILURE;
     }
 
-    char buffer[1024] = {0};
-    read(newSocket , buffer, 1024); 
-    printf("%s\n", buffer); 
+    std::thread t(&libEthernet::readMsg, this, newSocket);
 
-    send(newSocket , "hello" , 5, 0); 
-    printf("Hello message sent\n");
     return libEthernet::OK;
+}
+
+void libEthernet::readMsg(int fd)
+{
+    LOG("");
+    char buffer[1024] = {0};
+    while (1)
+    {
+        std::cout << "frifir" << std::endl;
+        if (recv(fd, buffer, 1024, 0) > 0)
+        {
+            
+            std::cout << "mesg" << std::endl;
+            this->notifyMsg(buffer);
+        }
+    }
 }
 
 libEthernet::E_STATUS libEthernet::clientConfig()
@@ -79,12 +93,11 @@ libEthernet::E_STATUS libEthernet::clientConfig()
 
     if (connect(this->_socket_fd, (struct sockaddr *)&address, sizeof(address)) < 0)
     {
-        perror("\nConnection Failed \n"); 
+        perror("\nConnection Failed"); 
         return libEthernet::FAILURE;
     }
-    // char buffer[1024] = {0};
-    // read(this->_socket_fd, buffer, 1024); 
-    // printf("%s\n",buffer ); 
+
+    std::thread t(&libEthernet::readMsg, this,  this->_socket_fd);
     return libEthernet::OK;
 }
 
@@ -108,17 +121,30 @@ libEthernet::E_STATUS libEthernet::initCom()
         return this->clientConfig();
 }
 
-libEthernet::E_STATUS libEthernet::sendMsg(const char *msg)
+libEthernet::E_STATUS libEthernet::sendMsg(const char *msg) const
 {
+    if (this->_socket_fd < 0)
+    {
+        LOG_ERROR("No socket");
+        return libEthernet::FAILURE;
+    }
+
     LOG(msg);
+
     send(this->_socket_fd , msg , strlen(msg) , 0 ); 
-    printf("Hello message sent\n"); 
 
     return libEthernet::OK;
 }
 
-
-void testLib()
+void libEthernet::addNotifier(libEthernetNotifier *notifier)
 {
-    LOG("");
+    this->_notifiers.push_back(notifier);
+}
+
+void libEthernet::notifyMsg(const char *msg)
+{
+    for (auto &i : this->_notifiers)
+    {
+        i->notifyNewMsg(msg);
+    }
 }
